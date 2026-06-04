@@ -1,0 +1,22 @@
+device: cuda
+mixed_precision: true
+channels_last: true
+compile: false
+
+train:
+  batch_size: 16
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 2
+  epochs: 20
+
+eval:
+  batch_size: 32
+  num_workers: 4
+  pin_memory: true
+
+optimizer:
+  name: adamw
+  lr: 1e-4
+  weight_decay: 1e-4

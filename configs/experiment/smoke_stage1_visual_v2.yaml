@@ -1,0 +1,107 @@
+name: smoke_stage1_visual_v2
+description: Stage-1 v2 smoke run with longer training and larger in-batch negatives.
+log_dir: outputs/logs/smoke_stage1_visual_v2
+
+subset:
+  enabled: false
+
+train:
+  csv: data/processed/xbd_building_patches_smoke_stage1.csv
+  train_split: tier3
+  eval_split: hold
+  checkpoint: checkpoints/clip_visual_baseline_smoke_stage1_v2.pt
+  train_log_jsonl: outputs/logs/smoke_stage1_visual_v2/train_history.jsonl
+  summary_json: outputs/logs/smoke_stage1_visual_v2/train_summary.json
+  model_name: pretrained/openai-clip-vit-base-patch32
+  embedding_dim: 256
+  image_size: 224
+  batch_size: 32
+  epochs: 12
+  lr: 0.0001
+  weight_decay: 0.0001
+  temperature: 0.07
+  num_workers: 4
+  seed: 42
+  device: cuda
+  top_k: 10
+  amp: true
+  local_files_only: true
+  disable_balanced_sampling: false
+  loss_weighting: inverse_freq
+  selection_metric: macro_recall@1
+
+extract:
+  csv: data/processed/xbd_building_patches_smoke_stage1.csv
+  checkpoint: checkpoints/clip_visual_baseline_smoke_stage1_v2.pt
+  output: indexes/pre_clip_features_smoke_stage1_v2.npy
+  split: hold
+  image_size: 224
+  batch_size: 128
+  num_workers: 4
+  device: cuda
+  amp: true
+  view: pre
+  model_name: pretrained/openai-clip-vit-base-patch32
+  local_files_only: true
+
+eval:
+  csv: data/processed/xbd_building_patches_smoke_stage1.csv
+  checkpoint: checkpoints/clip_visual_baseline_smoke_stage1_v2.pt
+  features: indexes/pre_clip_features_smoke_stage1_v2.npy
+  index: indexes/pre_clip_smoke_stage1_v2.faiss
+  results_csv: outputs/predictions/clip_retrieval_results_smoke_stage1_v2.csv
+  metrics_json: outputs/predictions/clip_retrieval_metrics_smoke_stage1_v2.json
+  split: hold
+  image_size: 224
+  batch_size: 128
+  num_workers: 4
+  top_k: 10
+  device: cuda
+  amp: true
+  model_name: pretrained/openai-clip-vit-base-patch32
+  local_files_only: true
+
+tile_eval:
+  csv: data/processed/xbd_building_patches_smoke_stage1.csv
+  checkpoint: checkpoints/clip_visual_baseline_smoke_stage1_v2.pt
+  features: indexes/pre_clip_features_smoke_stage1_v2.npy
+  index: indexes/pre_clip_smoke_stage1_v2_tile.faiss
+  results_csv: outputs/predictions/clip_tile_retrieval_results_smoke_stage1_v2.csv
+  metrics_json: outputs/predictions/clip_tile_retrieval_metrics_smoke_stage1_v2.json
+  split: hold
+  image_size: 224
+  batch_size: 128
+  num_workers: 4
+  patch_top_k: 100
+  tile_top_k: 10
+  aggregation: top_m
+  top_m: 5
+  device: cuda
+  amp: true
+  model_name: pretrained/openai-clip-vit-base-patch32
+  local_files_only: true
+
+cases:
+  results_csv: outputs/predictions/clip_retrieval_results_smoke_stage1_v2.csv
+  output_dir: outputs/figures/retrieval_cases_smoke_stage1_v2
+  top_k: 5
+  num_cases: 24
+  incorrect_only: true
+
+sanity:
+  features: indexes/pre_clip_features_smoke_stage1_v2.npy
+  feature_metadata_csv: indexes/pre_clip_features_smoke_stage1_v2.csv
+  retrieval_results_csv: outputs/predictions/clip_retrieval_results_smoke_stage1_v2.csv
+  report_json: outputs/logs/smoke_stage1_visual_v2/sanity_report.json
+  collapse_cosine_threshold: 0.9999
+  top1_concentration_threshold: 0.20
+  unique_ratio_threshold: 0.50
+
+limitations:
+  metrics_json: outputs/predictions/clip_retrieval_metrics_smoke_stage1_v2.json
+  results_csv: outputs/predictions/clip_retrieval_results_smoke_stage1_v2.csv
+  summary_json: outputs/logs/smoke_stage1_visual_v2/visual_limitations_summary.json
+  summary_md: outputs/logs/smoke_stage1_visual_v2/visual_limitations_summary.md
+  failed_cases_csv: outputs/logs/smoke_stage1_visual_v2/visual_limitations_failed_cases.csv
+  top_k: 10
+  example_count: 12

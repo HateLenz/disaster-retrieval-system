@@ -1,0 +1,93 @@
+name: smoke_stage2_semantic
+log_dir: outputs/logs/smoke_stage2_semantic
+
+scripts:
+  train: scripts/train_clip_semantic_stage2.py
+
+train:
+  csv: data/processed/xbd_building_patches_smoke_stage1.csv
+  train_split: tier3
+  eval_split: hold
+  checkpoint: checkpoints/clip_semantic_stage2_smoke.pt
+  model_name: pretrained/openai-clip-vit-base-patch32
+  embedding_dim: 256
+  image_size: 224
+  batch_size: 16
+  epochs: 6
+  lr: 0.0001
+  weight_decay: 0.0001
+  temperature: 0.07
+  semantic_temperature: 0.07
+  semantic_loss_weight: 0.2
+  visual_loss_weight: 0.2
+  query_fusion_mode: concat_mlp
+  semantic_field: disaster_type
+  text_template: "a satellite image of a building after a {label} disaster"
+  num_workers: 4
+  seed: 42
+  device: cuda
+  top_k: 10
+  amp: true
+  local_files_only: true
+  loss_weighting: inverse_freq
+  selection_metric: macro_recall@1
+  train_log_jsonl: outputs/logs/smoke_stage2_semantic/train_history.jsonl
+  summary_json: outputs/logs/smoke_stage2_semantic/train_summary.json
+
+extract:
+  csv: data/processed/xbd_building_patches_smoke_stage1.csv
+  checkpoint: checkpoints/clip_semantic_stage2_smoke.pt
+  output: indexes/pre_clip_features_smoke_stage2_semantic.npy
+  split: hold
+  image_size: 224
+  batch_size: 64
+  num_workers: 4
+  device: cuda
+  amp: true
+  view: pre
+  model_name: pretrained/openai-clip-vit-base-patch32
+  local_files_only: true
+
+eval:
+  csv: data/processed/xbd_building_patches_smoke_stage1.csv
+  checkpoint: checkpoints/clip_semantic_stage2_smoke.pt
+  features: indexes/pre_clip_features_smoke_stage2_semantic.npy
+  index: indexes/pre_clip_smoke_stage2_semantic.faiss
+  results_csv: outputs/predictions/clip_retrieval_results_smoke_stage2_semantic.csv
+  metrics_json: outputs/predictions/clip_retrieval_metrics_smoke_stage2_semantic.json
+  split: hold
+  image_size: 224
+  batch_size: 64
+  num_workers: 4
+  top_k: 10
+  device: cuda
+  amp: true
+  model_name: pretrained/openai-clip-vit-base-patch32
+  local_files_only: true
+  semantic_field: disaster_type
+  text_template: "a satellite image of a building after a {label} disaster"
+
+cases:
+  results_csv: outputs/predictions/clip_retrieval_results_smoke_stage2_semantic.csv
+  output_dir: outputs/cases/smoke_stage2_semantic
+  top_k: 5
+  num_cases: 24
+  incorrect_only: true
+
+sanity:
+  features: indexes/pre_clip_features_smoke_stage2_semantic.npy
+  feature_metadata_csv: indexes/pre_clip_features_smoke_stage2_semantic.csv
+  retrieval_results_csv: outputs/predictions/clip_retrieval_results_smoke_stage2_semantic.csv
+  report_json: outputs/logs/smoke_stage2_semantic/sanity_report.json
+  collapse_cosine_threshold: 0.9999
+  top1_concentration_threshold: 0.2
+  unique_ratio_threshold: 0.5
+
+limitations:
+  metrics_json: outputs/predictions/clip_retrieval_metrics_smoke_stage2_semantic.json
+  results_csv: outputs/predictions/clip_retrieval_results_smoke_stage2_semantic.csv
+  summary_json: outputs/logs/smoke_stage2_semantic/visual_limitations_summary.json
+  summary_md: outputs/logs/smoke_stage2_semantic/visual_limitations_summary.md
+  failed_cases_csv: outputs/logs/smoke_stage2_semantic/visual_limitations_failed_cases.csv
+  top_k: 10
+  example_count: 12

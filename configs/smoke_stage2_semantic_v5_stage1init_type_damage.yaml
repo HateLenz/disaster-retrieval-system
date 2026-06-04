@@ -1,0 +1,98 @@
+name: smoke_stage2_semantic_v5_stage1init_type_damage
+log_dir: outputs/logs/smoke_stage2_semantic_v5_stage1init_type_damage
+
+scripts:
+  train: scripts/train_clip_semantic_stage2.py
+
+train:
+  csv: data/processed/xbd_building_patches_smoke_stage1.csv
+  train_split: tier3
+  eval_split: hold
+  checkpoint: checkpoints/clip_semantic_stage2_smoke_v5_stage1init_type_damage.pt
+  init_visual_checkpoint: checkpoints/clip_visual_baseline_smoke_stage1.pt
+  model_name: pretrained/openai-clip-vit-base-patch32
+  embedding_dim: 256
+  image_size: 224
+  batch_size: 16
+  epochs: 6
+  lr: 0.0001
+  weight_decay: 0.0001
+  temperature: 0.07
+  semantic_temperature: 0.07
+  semantic_loss_weight: 0.05
+  visual_loss_weight: 0.0
+  query_fusion_mode: residual_gate
+  detach_gallery_for_query_loss: true
+  freeze_image_projection: true
+  evaluate_before_training: true
+  semantic_field: disaster_type
+  semantic_fields: disaster_type,damage_label
+  text_template: "a post-disaster satellite image of a {damage_label} building after a {disaster_type} disaster"
+  num_workers: 4
+  seed: 42
+  device: cuda
+  top_k: 10
+  amp: true
+  local_files_only: true
+  loss_weighting: inverse_freq
+  selection_metric: macro_recall@1
+  train_log_jsonl: outputs/logs/smoke_stage2_semantic_v5_stage1init_type_damage/train_history.jsonl
+  summary_json: outputs/logs/smoke_stage2_semantic_v5_stage1init_type_damage/train_summary.json
+
+extract:
+  csv: data/processed/xbd_building_patches_smoke_stage1.csv
+  checkpoint: checkpoints/clip_semantic_stage2_smoke_v5_stage1init_type_damage.pt
+  output: indexes/pre_clip_features_smoke_stage2_semantic_v5_stage1init_type_damage.npy
+  split: hold
+  image_size: 224
+  batch_size: 64
+  num_workers: 4
+  device: cuda
+  amp: true
+  view: pre
+  model_name: pretrained/openai-clip-vit-base-patch32
+  local_files_only: true
+
+eval:
+  csv: data/processed/xbd_building_patches_smoke_stage1.csv
+  checkpoint: checkpoints/clip_semantic_stage2_smoke_v5_stage1init_type_damage.pt
+  features: indexes/pre_clip_features_smoke_stage2_semantic_v5_stage1init_type_damage.npy
+  index: indexes/pre_clip_smoke_stage2_semantic_v5_stage1init_type_damage.faiss
+  results_csv: outputs/predictions/clip_retrieval_results_smoke_stage2_semantic_v5_stage1init_type_damage.csv
+  metrics_json: outputs/predictions/clip_retrieval_metrics_smoke_stage2_semantic_v5_stage1init_type_damage.json
+  split: hold
+  image_size: 224
+  batch_size: 64
+  num_workers: 4
+  top_k: 10
+  device: cuda
+  amp: true
+  model_name: pretrained/openai-clip-vit-base-patch32
+  local_files_only: true
+  semantic_fields: disaster_type,damage_label
+  text_template: "a post-disaster satellite image of a {damage_label} building after a {disaster_type} disaster"
+
+cases:
+  results_csv: outputs/predictions/clip_retrieval_results_smoke_stage2_semantic_v5_stage1init_type_damage.csv
+  output_dir: outputs/cases/smoke_stage2_semantic_v5_stage1init_type_damage
+  top_k: 5
+  num_cases: 24
+  incorrect_only: true
+
+sanity:
+  features: indexes/pre_clip_features_smoke_stage2_semantic_v5_stage1init_type_damage.npy
+  feature_metadata_csv: indexes/pre_clip_features_smoke_stage2_semantic_v5_stage1init_type_damage.csv
+  retrieval_results_csv: outputs/predictions/clip_retrieval_results_smoke_stage2_semantic_v5_stage1init_type_damage.csv
+  report_json: outputs/logs/smoke_stage2_semantic_v5_stage1init_type_damage/sanity_report.json
+  collapse_cosine_threshold: 0.9999
+  top1_concentration_threshold: 0.2
+  unique_ratio_threshold: 0.5
+
+limitations:
+  metrics_json: outputs/predictions/clip_retrieval_metrics_smoke_stage2_semantic_v5_stage1init_type_damage.json
+  results_csv: outputs/predictions/clip_retrieval_results_smoke_stage2_semantic_v5_stage1init_type_damage.csv
+  summary_json: outputs/logs/smoke_stage2_semantic_v5_stage1init_type_damage/visual_limitations_summary.json
+  summary_md: outputs/logs/smoke_stage2_semantic_v5_stage1init_type_damage/visual_limitations_summary.md
+  failed_cases_csv: outputs/logs/smoke_stage2_semantic_v5_stage1init_type_damage/visual_limitations_failed_cases.csv
+  top_k: 10
+  example_count: 12

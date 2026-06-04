@@ -1,0 +1,87 @@
+name: full_stage1_visual
+description: Stage-1 pure image retrieval profile for the full xBD building-patch dataset.
+log_dir: outputs/logs/full_stage1_visual
+
+subset:
+  enabled: false
+
+train:
+  csv: data/processed/xbd_building_patches.csv
+  train_split: tier3
+  eval_split: hold
+  checkpoint: checkpoints/clip_visual_baseline_full_stage1.pt
+  train_log_jsonl: outputs/logs/full_stage1_visual/train_history.jsonl
+  summary_json: outputs/logs/full_stage1_visual/train_summary.json
+  model_name: pretrained/openai-clip-vit-base-patch32
+  embedding_dim: 256
+  image_size: 224
+  batch_size: 16
+  epochs: 12
+  lr: 0.0001
+  weight_decay: 0.0001
+  temperature: 0.07
+  num_workers: 8
+  seed: 42
+  device: cuda
+  top_k: 10
+  amp: true
+  local_files_only: true
+  disable_balanced_sampling: false
+  loss_weighting: inverse_freq
+  selection_metric: macro_recall@1
+
+extract:
+  csv: data/processed/xbd_building_patches.csv
+  checkpoint: checkpoints/clip_visual_baseline_full_stage1.pt
+  output: indexes/pre_clip_features_full_stage1.npy
+  split: hold
+  image_size: 224
+  batch_size: 128
+  num_workers: 8
+  device: cuda
+  amp: true
+  view: pre
+  model_name: pretrained/openai-clip-vit-base-patch32
+  local_files_only: true
+
+eval:
+  csv: data/processed/xbd_building_patches.csv
+  checkpoint: checkpoints/clip_visual_baseline_full_stage1.pt
+  features: indexes/pre_clip_features_full_stage1.npy
+  index: indexes/pre_clip_full_stage1.faiss
+  results_csv: outputs/predictions/clip_retrieval_results_full_stage1.csv
+  metrics_json: outputs/predictions/clip_retrieval_metrics_full_stage1.json
+  split: hold
+  image_size: 224
+  batch_size: 128
+  num_workers: 8
+  top_k: 10
+  device: cuda
+  amp: true
+  model_name: pretrained/openai-clip-vit-base-patch32
+  local_files_only: true
+
+cases:
+  results_csv: outputs/predictions/clip_retrieval_results_full_stage1.csv
+  output_dir: outputs/figures/retrieval_cases_full_stage1
+  top_k: 5
+  num_cases: 36
+  incorrect_only: true
+
+sanity:
+  features: indexes/pre_clip_features_full_stage1.npy
+  feature_metadata_csv: indexes/pre_clip_features_full_stage1.csv
+  retrieval_results_csv: outputs/predictions/clip_retrieval_results_full_stage1.csv
+  report_json: outputs/logs/full_stage1_visual/sanity_report.json
+  collapse_cosine_threshold: 0.9999
+  top1_concentration_threshold: 0.20
+  unique_ratio_threshold: 0.50
+
+limitations:
+  metrics_json: outputs/predictions/clip_retrieval_metrics_full_stage1.json
+  results_csv: outputs/predictions/clip_retrieval_results_full_stage1.csv
+  summary_json: outputs/logs/full_stage1_visual/visual_limitations_summary.json
+  summary_md: outputs/logs/full_stage1_visual/visual_limitations_summary.md
+  failed_cases_csv: outputs/logs/full_stage1_visual/visual_limitations_failed_cases.csv
+  top_k: 10
+  example_count: 20

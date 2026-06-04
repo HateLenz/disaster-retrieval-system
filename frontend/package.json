@@ -1,0 +1,23 @@
+{
+  "name": "disaster-retrieval-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev:web": "vite --host 127.0.0.1 --port 5173",
+    "dev:electron": "concurrently -k \"npm:dev:web\" \"wait-on http://127.0.0.1:5173 && electron .\"",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173"
+  },
+  "dependencies": {
+    "lucide-vue-next": "^0.468.0",
+    "vue": "^3.4.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "concurrently": "^8.2.2",
+    "electron": "^31.0.0",
+    "vite": "^5.4.21",
+    "wait-on": "^7.2.0"
+  }
+}
