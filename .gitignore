@@ -24,7 +24,6 @@ Thumbs.db
 
 # Data, model and experiment artifacts
 data/raw/
-data/interim/
 data/processed/
 checkpoints/
 indexes/

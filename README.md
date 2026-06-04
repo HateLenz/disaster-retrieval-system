@@ -15,45 +15,54 @@
 
 ## 目录结构
 
-本文档所在目录就是项目根目录。GitHub 仓库建议直接以这一层作为根目录，不再额外套一层同名父目录。
+本文档所在目录就是项目根目录。下面列的是当前本地项目结构；标注“不提交到 Git”的目录由数据下载、训练、索引构建或应用运行生成，公开 GitHub 仓库只保留代码、文档和说明文件。
 
 ```text
 .
+├── .gitattributes
 ├── .gitignore
 ├── .python-version
 ├── README.md
 ├── environment.yml
 ├── image.ipynb                  # 可选的分析/展示 notebook
+├── checkpoints/                 # 本地训练 checkpoint，不提交到 Git
 ├── configs/                     # 训练和实验 profile
 ├── data/                        # 本地数据目录，不提交到 Git
+├── db/                          # 本地 SQLite 数据库，不提交到 Git
 ├── docs/                        # 需求、设计、实现、测试和算法文档
 ├── frontend/                    # Vue + Electron 前端
+├── indexes/                     # 本地特征和 FAISS 索引，不提交到 Git
+├── outputs/                     # 本地实验日志、预测和导出结果，不提交到 Git
 ├── pretrained/                  # 本地 CLIP 预训练权重，不提交权重文件
 ├── requirements/                # Python 依赖锁定文件
 ├── scripts/                     # 数据处理、训练、评估、索引构建脚本
 └── src/                         # 后端、模型、数据集、检索工具源码
 ```
 
-根目录 `.gitignore` 已经排除了以下大文件目录：
+根目录 `.gitignore` 已经排除了以下本地资源目录和文件模式：
 
 ```text
 data/raw/
-data/interim/
 data/processed/
 pretrained/*
 checkpoints/
 indexes/
 outputs/
 db/*.db
+db/*.db-*
+db/*.sqlite
+db/*.sqlite3
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
 ```
 
 ## 外部资源清单
 
 | 资源 | 是否必须 | 放置位置 | 获取方式 |
 | --- | --- | --- | --- |
-| xBD 原始数据 | 从头处理和训练必须 | `data/raw/xbd/geotiffs/` | 从 xBD/xView2 官方页面下载 |
+| xBD 官方下载包 | 从官网重新组织数据时需要 | `data/raw/xbd_download/` | 从 xBD/xView2 官方页面下载分卷并合并 |
+| xBD 原始 GEOTIFF 数据 | 从头处理和训练必须 | `data/raw/xbd/geotiffs/` | 由 `data/raw/xbd_download/xview2_geotiff.tgz` 解压得到 |
 | 处理后 building patch | 训练、评估、应用都需要 | `data/processed/` | 由脚本生成，或从你自己的外部存储下载 |
 | CLIP 预训练权重 | 训练和推理必须 | `pretrained/openai-clip-vit-base-patch32/` | `scripts/download_clip_model.py` 或手动下载 Hugging Face snapshot |
 | 项目 checkpoint | 应用推理必须 | `checkpoints/` | 自己训练生成，或从外部存储下载 |
@@ -112,12 +121,80 @@ npm -v
 
 - xBD / xView2 Dataset: <https://xview2.org/dataset>
 
-下载后，把 `geotiffs` 数据整理成下面的结构：
+首次下载建议选择官网的 **Full datasets with GEOTIFF metadata**。这是当前最完整的数据版本，压缩后约 `51GB`，官网以 6 个分卷提供。由于官网下载链接通常是临时签名链接，README 不固定写死直链；请打开上面的官方页面，逐个点击 `part-aa` 到 `part-af` 下载。如果下载中断或链接失效，重新打开官网页面获取新的下载链接。
+
+建议先把分卷放到当前项目实际使用的本地忽略目录：
+
+```text
+data/raw/xbd_download/
+├── xview2_geotiff.tgz.part-aa
+├── xview2_geotiff.tgz.part-ab
+├── xview2_geotiff.tgz.part-ac
+├── xview2_geotiff.tgz.part-ad
+├── xview2_geotiff.tgz.part-ae
+└── xview2_geotiff.tgz.part-af
+```
+
+官方分卷和 SHA1 如下：
+
+| 文件 | 大小 | SHA1 |
+| --- | ---: | --- |
+| `xview2_geotiff.tgz.part-aa` | ~9.8GB | `881ed94d1060c91e64c8eae438dfce492a21d9a9` |
+| `xview2_geotiff.tgz.part-ab` | ~9.8GB | `4064dddc9aa05f786a3a6f70dd4ca86d79dd9e3a` |
+| `xview2_geotiff.tgz.part-ac` | ~9.8GB | `0cfdf761e6f77ac5c423d9fb0927c3f8f8ac43da` |
+| `xview2_geotiff.tgz.part-ad` | ~9.8GB | `44a39a7c4a80d386fb71ced95caee040126bb405` |
+| `xview2_geotiff.tgz.part-ae` | ~9.8GB | `7fb96fac1d009b6a213d4efef2fbf5f1a475a554` |
+| `xview2_geotiff.tgz.part-af` | ~2.3GB | `2ccbd04c4b2e27f8d948de734f661ec0c9d81152` |
+| 合并后 `xview2_geotiff.tgz` | ~51GB | `6eae3baddf86796c15638682a6432e3e6223cb39` |
+
+在 Git Bash 或 Linux/macOS 终端中校验、合并和解压：
+
+```bash
+cd data/raw/xbd_download
+
+sha1sum xview2_geotiff.tgz.part-a?
+cat xview2_geotiff.tgz.part-a? > xview2_geotiff.tgz
+sha1sum xview2_geotiff.tgz
+
+mkdir -p ../xbd
+tar -xvzf xview2_geotiff.tgz -C ../xbd
+```
+
+在 PowerShell 中可以用下面的方式校验 SHA1：
+
+```powershell
+Set-Location data/raw/xbd_download
+Get-FileHash .\xview2_geotiff.tgz.part-aa -Algorithm SHA1
+Get-FileHash .\xview2_geotiff.tgz.part-ab -Algorithm SHA1
+Get-FileHash .\xview2_geotiff.tgz.part-ac -Algorithm SHA1
+Get-FileHash .\xview2_geotiff.tgz.part-ad -Algorithm SHA1
+Get-FileHash .\xview2_geotiff.tgz.part-ae -Algorithm SHA1
+Get-FileHash .\xview2_geotiff.tgz.part-af -Algorithm SHA1
+```
+
+PowerShell 下合并大文件建议直接调用 Windows 二进制复制：
+
+```powershell
+cmd /c copy /b xview2_geotiff.tgz.part-aa+xview2_geotiff.tgz.part-ab+xview2_geotiff.tgz.part-ac+xview2_geotiff.tgz.part-ad+xview2_geotiff.tgz.part-ae+xview2_geotiff.tgz.part-af xview2_geotiff.tgz
+Get-FileHash .\xview2_geotiff.tgz -Algorithm SHA1
+New-Item -ItemType Directory -Force ..\xbd | Out-Null
+tar -xvzf .\xview2_geotiff.tgz -C ..\xbd
+```
+
+压缩包内部第一层目录是 `geotiffs/`。按上面的命令解压后，项目内数据目录应是：
 
 ```text
 .
 └── data/
     └── raw/
+        ├── xbd_download/
+        │   ├── xview2_geotiff.tgz
+        │   ├── xview2_geotiff.tgz.part-aa
+        │   ├── xview2_geotiff.tgz.part-ab
+        │   ├── xview2_geotiff.tgz.part-ac
+        │   ├── xview2_geotiff.tgz.part-ad
+        │   ├── xview2_geotiff.tgz.part-ae
+        │   └── xview2_geotiff.tgz.part-af
         └── xbd/
             └── geotiffs/
                 ├── hold/
@@ -829,7 +906,7 @@ CPU 能跑通流程，但训练会明显变慢。
 
 | 文档 | 内容 |
 | --- | --- |
-| `dataset.md` | 数据集来源、字段、统计和处理策略 |
+| `docs/dataset.md` | 数据集来源、字段、统计和处理策略 |
 | `pretrained/README.md` | 本地预训练模型目录说明 |
 | `docs/algorithm_design.md` | Stage-1/Stage-2 算法、指标和实验结果 |
 | `docs/application_project_overview.md` | 应用工程总览 |
